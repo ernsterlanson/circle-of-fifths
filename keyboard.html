@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piano Keyboard</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .piano {
+            display: flex;
+            justify-content: center;
+            margin: 80px auto 50px;
+            position: relative;
+            width: 840px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 5px;
+            background: #e0e0e0;
+        }
+        
+        .white-key {
+            width: 60px;
+            height: 220px;
+            background: #fff;
+            border: none;
+            position: relative;
+            z-index: 0;
+            border-radius: 0 0 4px 4px;
+            box-shadow: 0 2px 2px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.2s;
+        }
+        
+        .white-key:hover {
+            background: #f0f0f0;
+        }
+        
+        .black-key {
+            width: 40px;
+            height: 140px;
+            background: #1a1a1a;
+            position: absolute;
+            z-index: 1;
+            top: 0;
+            transform: translateX(-50%);
+            border-radius: 0 0 4px 4px;
+            box-shadow: 0 3px 5px rgba(0, 0, 0, 0.3);
+            transition: background-color 0.2s;
+        }
+        
+        .black-key:hover {
+            background: #2d2d2d;
+        }
+        
+        .key-label {
+            position: absolute;
+            bottom: 10px;
+            width: 100%;
+            text-align: center;
+            color: #333;
+        }
+
+        .black-key .key-label {
+            color: white;
+            bottom: 20px;
+        }
+
+        .selected {
+            background: #ffeb3b;
+        }
+
+        .black-key.selected {
+            background: #ffd700;
+        }
+
+        .scale-key {
+            background: #fff9c4;
+        }
+
+        .black-key.scale-key {
+            background: #ffd700;
+        }
+
+        .key-dot {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #ff4757;
+            border-radius: 50%;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 0 10px rgba(255, 71, 87, 0.3);
+        }
+
+        .black-key .key-dot {
+            bottom: 40px;
+            background: #ff6b81;
+        }
+
+        .back-button {
+            position: fixed;
+            top: 30px;
+            left: 30px;
+            padding: 12px 24px;
+            background: rgba(0, 0, 0, 0.1);
+            color: #333;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            transition: all 0.2s;
+            backdrop-filter: blur(10px);
+        }
+
+        .back-button:hover {
+            background: rgba(0, 0, 0, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .next-button {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            padding: 12px 24px;
+            background: rgba(0, 0, 0, 0.1);
+            color: #333;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            transition: all 0.2s;
+            backdrop-filter: blur(10px);
+        }
+
+        .next-button:hover {
+            background: rgba(0, 0, 0, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .scale-title {
+            font-size: 48px;
+            font-weight: 600;
+            color: #333;
+            margin: 30px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="scale-title"></h1>
+    <div class="piano"></div>
+    <button class="back-button">Back to Circle of Fifths</button>
+    <button class="next-button">Next Scale</button>
+    <script>
+        class Piano {
+            constructor() {
+                this.whiteNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'A', 'B'];
+                this.blackNotes = ['C♯', 'D♯', 'F♯', 'G♯', 'A♯', 'C♯', 'D♯', 'F♯', 'G♯', 'A♯'];
+                
+                // Add enharmonic mapping (same note, different names)
+                this.enharmonicNotes = {
+                    'C♯': 'D♭',
+                    'D♯': 'E♭',
+                    'F♯': 'G♭',
+                    'G♯': 'A♭',
+                    'A♯': 'B♭',
+                    'D♭': 'C♯',
+                    'E♭': 'D♯',
+                    'G♭': 'F♯',
+                    'A♭': 'G♯',
+                    'B♭': 'A♯'
+                };
+
+                this.pianoElement = document.querySelector('.piano');
+                this.selectedNote = new URLSearchParams(window.location.search).get('note');
+                document.title = `Piano Keyboard - ${this.selectedNote}`;
+                
+                this.scales = {
+                    'C': ['C1', 'D1', 'E1', 'F1', 'G1', 'A1', 'B1', 'C2'],
+                    'G': ['G1', 'A1', 'B1', 'C2', 'D2', 'E2', 'F♯2', 'G2'],
+                    'D': ['D1', 'E1', 'F♯1', 'G1', 'A1', 'B1', 'C♯2', 'D2'],
+                    'A': ['A1', 'B1', 'C♯2', 'D2', 'E2', 'F♯2', 'G♯2', 'A2'],
+                    'E': ['E1', 'F♯1', 'G♯1', 'A1', 'B1', 'C♯2', 'D♯2', 'E2'],
+                    'B': ['B1', 'C♯2', 'D♯2', 'E2', 'F♯2', 'G♯2', 'A♯2', 'B2'],
+                    'F♯': ['F♯1', 'G♯1', 'A♯1', 'B1', 'C♯2', 'D♯2', 'E♯2', 'F♯2'],
+                    'D♭': ['D♭1', 'E♭1', 'F1', 'G♭1', 'A♭1', 'B♭1', 'C2', 'D♭2'],
+                    'A♭': ['A♭1', 'B♭1', 'C2', 'D♭2', 'E♭2', 'F2', 'G♭2', 'A♭2'],
+                    'E♭': ['E♭1', 'F1', 'G1', 'A♭1', 'B♭1', 'C2', 'D2', 'E♭2'],
+                    'B♭': ['B♭1', 'C2', 'D2', 'E♭2', 'F2', 'G2', 'A2', 'B♭2'],
+                    'F': ['F1', 'G1', 'A1', 'B♭1', 'C2', 'D2', 'E2', 'F2']
+                };
+                
+                // Add circle order from script.js
+                this.circleOrder = ['C', 'G', 'D', 'A', 'E', 'B', 'F♯', 'D♭', 'A♭', 'E♭', 'B♭', 'F'];
+                
+                this.updateScaleTitle();
+                this.createKeys();
+                this.highlightScale();
+                this.initBackButton();
+                this.initNextButton();
+            }
+
+            updateScaleTitle() {
+                const scaleTitle = document.querySelector('.scale-title');
+                scaleTitle.textContent = `${this.selectedNote} Major Scale`;
+            }
+
+            createKeys() {
+                // Create white keys
+                this.whiteNotes.forEach((note, index) => {
+                    const whiteKey = document.createElement('div');
+                    whiteKey.className = 'white-key';
+                    const octave = index >= 7 ? '2' : '1';
+                    whiteKey.dataset.note = `${note}${octave}`;
+                    this.pianoElement.appendChild(whiteKey);
+                });
+
+                // Create black keys
+                this.blackNotes.forEach((note, index) => {
+                    const blackKey = document.createElement('div');
+                    blackKey.className = 'black-key';
+                    
+                    const position = index >= 5 ? 
+                        this.getBlackKeyPosition(index - 5) + 420 : 
+                        this.getBlackKeyPosition(index);
+                    blackKey.style.left = `${position}px`;
+                    
+                    const octave = index >= 5 ? '2' : '1';
+                    blackKey.dataset.note = `${note}${octave}`;
+                    
+                    this.pianoElement.appendChild(blackKey);
+                });
+            }
+
+            getBlackKeyPosition(index) {
+                const positions = [
+                    60,  // Between C and D
+                    120, // Between D and E
+                    240, // Between F and G
+                    300, // Between G and A
+                    360  // Between A and B
+                ];
+                return positions[index];
+            }
+
+            highlightScale() {
+                if (this.scales[this.selectedNote]) {
+                    const scaleNotes = this.scales[this.selectedNote];
+                    
+                    const allKeys = this.pianoElement.querySelectorAll('.white-key, .black-key');
+                    allKeys.forEach(key => {
+                        const keyNote = key.dataset.note;
+                        if (this.isNoteInScale(keyNote, scaleNotes)) {
+                            const dot = document.createElement('div');
+                            dot.className = 'key-dot';
+                            key.appendChild(dot);
+                        }
+                    });
+                }
+            }
+
+            isNoteInScale(keyNote, scaleNotes) {
+                // Direct match
+                if (scaleNotes.includes(keyNote)) {
+                    return true;
+                }
+                
+                // Check enharmonic equivalent
+                const [noteName, octave] = [keyNote.slice(0, -1), keyNote.slice(-1)];
+                const enharmonicNote = this.enharmonicNotes[noteName];
+                if (enharmonicNote) {
+                    return scaleNotes.includes(enharmonicNote + octave);
+                }
+                
+                return false;
+            }
+
+            initBackButton() {
+                const backButton = document.querySelector('.back-button');
+                backButton.addEventListener('click', () => {
+                    window.location.href = 'index.html';
+                });
+            }
+
+            initNextButton() {
+                const nextButton = document.querySelector('.next-button');
+                nextButton.addEventListener('click', () => {
+                    const currentIndex = this.circleOrder.indexOf(this.selectedNote);
+                    const nextIndex = (currentIndex + 1) % this.circleOrder.length;
+                    const nextNote = this.circleOrder[nextIndex];
+                    window.location.href = `keyboard.html?note=${encodeURIComponent(nextNote)}`;
+                });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new Piano();
+        });
+    </script>
+</body>
+</html> 
